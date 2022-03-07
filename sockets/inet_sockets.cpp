@@ -70,10 +70,17 @@ int inetListen(const char *service, int backlog, socklen_t *addrlen) {
     //一个addr socket bind listen都成功时才算成功
     int fd = -1;
     while (addr != nullptr) {
-        if ((fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol)) >= 0 &&
-            bind(fd, addr->ai_addr, addr->ai_addrlen) == 0 && listen(fd, backlog) == 0) {
+        if ((fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol)) >= 0) {
+            int opval = 1;
+            if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opval, sizeof(opval)) < 0) {
+                perror("setsockopt");
+                exit(-1);
+            }
+        }
+        if (bind(fd, addr->ai_addr, addr->ai_addrlen) == 0 && listen(fd, backlog) == 0) {
             if (addrlen != nullptr)
                 *addrlen = addr->ai_addrlen;
+            std::cout << "listening" << std::endl;
             break;
         }
         addr = addr->ai_next;

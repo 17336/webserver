@@ -11,10 +11,6 @@ using namespace std;
 void func(){}
 
 int main() {
-    float m, n;
-    thread t(func);
-    cout<<t.joinable();
-    t.detach();
-    cout<<t.joinable();
+    std::cout<< (nullptr==NULL);
 }
 

@@ -10,6 +10,8 @@
 #include <sys/uio.h>
 #include <sstream>
 
+#define MAXLINE 128
+
 class http {
 
 public:
@@ -20,14 +22,14 @@ public:
         body.seekg(0, body.end);
         int len = body.tellg();
         ss << "HTTP/1.0 " << statusCode << ' ' << statusMsg << "\r\n";
-        ss << "Content-Type: text/html";
-        ss << "Content-Length: " << len;
+        ss << "Content-Type: text/html\r\n";
+        ss << "Content-Length: " << len << "\r\n\r\n";
         if (write(fd, ss.str().data(), ss.str().size()) == -1) {
-            perror("write");
+            perror("错误响应报文头 出错");
             return false;
         }
         if (write(fd, body.str().data(), body.str().size()) == -1) {
-            perror("write");
+            perror("错误响应报文体 出错");
             return false;
         }
         return true;
@@ -35,24 +37,24 @@ public:
 
     static bool readAndSend(char *s, int fd) {
         //找到method后面的空格并改为NULL字符
-        char *end = strchr(s, ' ');
-        *end = '\0';
+        char method[MAXLINE], uri[MAXLINE], version[MAXLINE];
+        sscanf(s, "%s %s %s", method, uri, version);
         //如果method不是GET，则发生错误
-        if (strcmp(s, "GET") != 0) {
+        if (strcmp(method, "GET") != 0) {
             return clientError(fd, "", "405", "Method not allowed", "未实现的方法");
         }
         //尝试将url标识的文件打开
-        ++end;
-        *(strchr(s, ' ')) = '\0';
         std::string fType;
-        if (strstr(end, "html") != nullptr)
+        if (uri[1] == '\0')
+            strncpy(uri,"/index.html\0",12);
+        if (strstr(uri, "html") != nullptr)
             fType = "text/html";
         else fType = "image/png";
         std::string path("../resources");
-        path.append(end);
+        path.append(uri);
         std::fstream is(path, std::fstream::in);
         if (!is.is_open())
-            return clientError(fd, end, "404", "Not found", "无效的资源");
+            return clientError(fd, uri, "404", "Not found", "无效的资源");
 
         //获取文件大小
         is.seekg(0, is.end);
@@ -61,13 +63,13 @@ public:
         char buf[flength];
         is.read(buf, flength);
         std::stringstream ss;
-        ss << "HTTP/1.0 200 OK\r\nContent-Type: " << fType << "\r\nContent-Length: " << flength;
+        ss << "HTTP/1.0 200 OK\r\nContent-Type: " << fType << "\r\nContent-Length: " << flength << "\r\n\r\n";
         if (write(fd, ss.str().data(), ss.str().size()) == -1) {
-            perror("write");
+            perror("响应报文 报文头出错");
             return false;
         }
         if (write(fd, buf, flength) == -1) {
-            perror("write");
+            perror("响应报文体出错");
             return false;
         }
         return true;

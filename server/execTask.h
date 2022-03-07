@@ -23,23 +23,25 @@ class execTask {
     int efd;
     //是否是lfd产生的I/O通知
     bool isListenFd;
-    //acceptor用ev作为参数将套接字加入到epoll
-    epoll_event ev;
 public:
     explicit execTask(int fd_) : fd(fd_), isListenFd(false) {}
 
+    explicit execTask(int fd_,bool isListenFd_):fd(fd_),isListenFd(isListenFd_){}
+
     explicit execTask(int fd_, int efd_, bool isListenFd_) : fd(fd_), efd(efd_), isListenFd(isListenFd_) {
-        //ev关心：可读（边缘触发+一次触发）、错误
-        if (isListenFd)
-            ev.events = EPOLLIN | EPOLLONESHOT | EPOLLHUP | EPOLLERR | EPOLLRDHUP | EPOLLET;
     }
 
     //线程要执行的任务函数
     void operator()() {
         if (isListenFd) {
             int cfd;
+            sockaddr clientaddr;
+            socklen_t len;
             //尽可能多的读取I/O数据
-            while ((cfd = accept(fd, nullptr, nullptr)) != -1) {
+            //acceptor用ev作为参数将套接字加入到epoll
+            epoll_event ev;
+            ev.events = EPOLLIN | EPOLLONESHOT | EPOLLHUP | EPOLLERR | EPOLLRDHUP | EPOLLET;
+            while ((cfd = accept(fd, &clientaddr, &len)) >0) {
                 ev.data.fd = cfd;
                 if (epoll_ctl(efd, EPOLL_CTL_ADD, cfd, &ev) == -1)
                     perror("thread add connect fd to epoll failed");
@@ -51,7 +53,7 @@ public:
             event.data.fd = fd;
             event.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
             if (epoll_ctl(efd, EPOLL_CTL_MOD, fd, &event) == -1)
-                errExit("thread epoll_ctl mod");
+                errExit("epoll 重置监听套接字失败");
         } else {
             char buf[dataMaxSize];
             memset(buf, 0, dataMaxSize);
@@ -61,6 +63,7 @@ public:
                 epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr);
                 close(fd);
             }
+            std::cout<<buf;
             if(!http::readAndSend(buf,fd)){
                 epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr);
                 close(fd);
@@ -69,8 +72,9 @@ public:
             epoll_event event;
             event.data.fd = fd;
             event.events = EPOLLIN | EPOLLONESHOT | EPOLLHUP | EPOLLERR | EPOLLRDHUP | EPOLLET;
-            if (epoll_ctl(efd, EPOLL_CTL_MOD, fd, &event) == -1)
-                errExit("thread epoll_ctl mod");
+            if (epoll_ctl(efd, EPOLL_CTL_MOD, fd, &event) == -1){
+                if(errno!=EEXIST) errExit("epoll 重置通信套接字失败");
+            }
         }
     }
 };

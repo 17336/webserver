@@ -41,7 +41,7 @@ public:
         //等待队列非空时在进行pop
         dataCond.wait(lock, [this]() { return !this->empty(); });
         value=std::move(data.front());
-        data->pop();
+        data.pop();
     }
 
     bool try_pop(T &value){

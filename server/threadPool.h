@@ -50,7 +50,7 @@ class threadPool {
 public:
     //按定义顺序构造，这样threads在joiner前构造
     threadPool() : done(false), joiner(threads) {
-        unsigned long numOfThread = std::thread::hardware_concurrency();
+        unsigned long numOfThread = 2;
         try {
             for (unsigned long i = 0; i < numOfThread; ++i) {
                 threads.push_back(std::thread(&threadPool::workThread, this));
