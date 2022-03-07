@@ -77,6 +77,7 @@ int inetListen(const char *service, int backlog, socklen_t *addrlen) {
             break;
         }
         addr = addr->ai_next;
+        //如果socket成功了但其他的操作没成功，记得先关掉fd在重新操作
         if (fd >= 0) {
             close(fd);
             fd = -1;
@@ -124,8 +125,6 @@ int inetBind(const char *service, socklen_t *addrlen, int type) {
             fd = -1;
         }
     }
-    if (addrlen != nullptr)
-        *addrlen = addr->ai_addrlen;
 
     freeaddrinfo(addr);
     return fd;
