@@ -22,13 +22,11 @@ int main() {
     timerHeap p(efd);
     clientData *cdata=new clientData[10];
     vector<time_t> t{6,5,2,7,6,9,4,5,2,1};
-    void (timerHeap::*ptr)(const clientData &)=&timerHeap::disconnect;
     for (int i = 0; i < 10; ++i) {
         cdata[i].fd=i;
-        p.pushTimer(myTimer(t[i],ptr,cdata[i]));
+        p.pushTimer(myTimer(t[i],callWhich::disconnect,cdata[i]));
     }
     for (int i = 0; i < 10; ++i) {
-        std::cout<<p.heap[0].expireTime<<',';
         p.popTimer();
     }
 }

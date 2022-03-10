@@ -12,6 +12,7 @@
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include "execTask.h"
+#include "timer.h"
 
 
 #pragma clang diagnostic push
@@ -51,29 +52,47 @@ int main(int argc, char **argv) {
     }
 
     threadPool tPool;
+    //epoll超时时间
+    time_t timeout = TIMEOUT;
+    timerHeap tHeap(efd);
     while (true) {
         int ready;
+        //记录epoll_wait开始时间和超时结束时间
+        time_t start = time(nullptr), end = start + timeout;
         //获取已经准备I/O的文件描述符
-        ready = epoll_wait(efd, evlist, MAX_EVENTS, -1);
+        ready = epoll_wait(efd, evlist, MAX_EVENTS, timeout);
         if (ready == -1) {
-            if (errno == EINTR) continue;
+            //因为信号中断epoll而返回，则重置timeout
+            if (errno == EINTR) {
+                timeout = end - time(nullptr);
+                if (timeout <= 0) timeout = tHeap.getLatestTime();
+                continue;
+            }
             errExit("epoll_wait");
         }
-        for (int i = 0; i < ready; ++i) {
-            //如果是lfd准备好accept
-            if (evlist[i].data.fd == lfd) {
-                execTask task(lfd,efd, true);
-                tPool.pushTask(task);
-            } else {
-                //如果对端挂断或者出错，将其关闭并删除
-                if (evlist[i].events & (EPOLLRDHUP | EPOLLERR | EPOLLHUP)) {
-                    epoll_ctl(efd, EPOLL_CTL_DEL, evlist[i].data.fd, nullptr);
-                    close(evlist[i].data.fd);
-                } else {
-                    execTask task(evlist[i].data.fd);
+        //epoll因为超时而返回
+        if (ready == 0) {
+            //处理定时事件，并重置超时时间
+            timeout = tHeap.tick();
+        } else {
+            for (int i = 0; i < ready; ++i) {
+                //如果是lfd准备好accept，交给线程池处理数据和定时器
+                if (evlist[i].data.fd == lfd) {
+                    execTask task(lfd, efd, true, tHeap);
+                    tPool.pushTask(task);
+                }
+                    //如果对端挂断或者出错，直接由主线程执行任务：删除其定时器
+                else if (evlist[i].events & (EPOLLRDHUP | EPOLLERR | EPOLLHUP)) {
+                    tHeap.eraseFd(evlist[i].data.fd);
+                }
+                    //有数据，则交给线程池处理数据和定时器
+                else {
+                    execTask task(evlist[i].data.fd, efd, false, tHeap);
                     tPool.pushTask(task);
                 }
             }
+            timeout = end - time(nullptr);
+            if (timeout <= 0) timeout = tHeap.getLatestTime();
         }
     }
 }
