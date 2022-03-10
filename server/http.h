@@ -46,10 +46,14 @@ public:
         //尝试将url标识的文件打开
         std::string fType;
         if (uri[1] == '\0')
-            strncpy(uri,"/index.html\0",12);
+            strncpy(uri, "/index.html\0", 12);
         if (strstr(uri, "html") != nullptr)
             fType = "text/html";
-        else fType = "image/png";
+        else if (strstr(uri, "png"))
+            fType = "image/png";
+        else if (strstr(uri, "mp4"))
+            fType = "video/x-mpg";
+        else fType = "application/octet-stream";
         std::string path("../resources");
         path.append(uri);
         std::fstream is(path, std::fstream::in);

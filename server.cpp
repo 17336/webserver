@@ -4,16 +4,11 @@
 
 #include <netdb.h>
 #include <thread>
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <iostream>
-#include <netinet/in.h>
 #include "inet_sockets.h"
 #include "deal_error.h"
 #include <sys/wait.h>
-#include "handleRequest.h"
 #include "threadsafe_queue.h"
-#include <thread>
 #include <sys/epoll.h>
 #include <fcntl.h>
 #include "execTask.h"
@@ -56,11 +51,10 @@ int main(int argc, char **argv) {
     }
 
     threadPool tPool;
-    //accpetor常驻内存
     while (true) {
         int ready;
         //获取已经准备I/O的文件描述符
-        ready = epoll_wait(efd, evlist, MAX_EVENTS, 0);
+        ready = epoll_wait(efd, evlist, MAX_EVENTS, -1);
         if (ready == -1) {
             if (errno == EINTR) continue;
             errExit("epoll_wait");

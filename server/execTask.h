@@ -63,7 +63,6 @@ public:
                 epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr);
                 close(fd);
             }
-            std::cout<<buf;
             if(!http::readAndSend(buf,fd)){
                 epoll_ctl(efd, EPOLL_CTL_DEL, fd, nullptr);
                 close(fd);

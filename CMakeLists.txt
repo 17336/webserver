@@ -24,3 +24,5 @@ target_include_directories(client PRIVATE ${ERROR_INC} ${SOCKET_INC})
 target_link_libraries(client Lib)
 
 add_executable(test test.cpp)
+target_include_directories(test PRIVATE ${SOCKET_INC} ${ERROR_INC} ${SERVER_INC})
+target_link_libraries(test Lib)
