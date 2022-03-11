@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include "execTask.h"
 #include "timer.h"
+#include <sys/resource.h>
+#include <unistd.h>
 
 
 #pragma clang diagnostic push
@@ -21,20 +23,25 @@
 #include "threadPool.h"
 
 #define MAX_EVENTS 4096
+#define MAX_OPENS 100000
 
 int main(int argc, char **argv) {
+    //修改当前的最大打开文件数
+    struct rlimit r;
+    r.rlim_max = MAX_OPENS;
+    r.rlim_cur = MAX_OPENS;
+    if (setrlimit(RLIMIT_NOFILE, &r) == -1) {
+        perror("setrlimit");
+    }
+
     socklen_t len;
     int lfd;
     //创建监听连接套接字lfd
-    if ((lfd = inetListen("60200", 1000, &len)) < 0) {
+    if ((lfd = inetListen("60200", 20000, &len)) < 0) {
         errExit("inetListen");
     }
-    //将lfd设为非阻塞模式
-    int temp = fcntl(lfd, F_GETFD);
-    if (temp == -1)
-        errExit("fcntl");
-    if (fcntl(lfd, F_SETFD, O_NONBLOCK | temp) == -1)
-        errExit("fcntl");
+
+    if(!becomeNonBlock(lfd)) errExit("no block");
 
     //创建epoll实例
     int efd;
@@ -52,6 +59,7 @@ int main(int argc, char **argv) {
     }
 
     threadPool tPool;
+
     //epoll超时时间
     time_t timeout = TIMEOUT;
     timerHeap tHeap(efd);

@@ -14,7 +14,14 @@
 
 #define dataMaxSize 65536
 
-bool readAndSend(char *s, int fd);
+bool becomeNonBlock(int fd){
+    //将lfd设为非阻塞模式
+    int temp = fcntl(fd, F_GETFD);
+    if (temp == -1) return false;
+    if (fcntl(fd, F_SETFD, O_NONBLOCK | temp) == -1)
+        return false;
+    return true;
+}
 
 //可调用对象，即分发给线程池中线程的任务
 class execTask {
@@ -42,6 +49,10 @@ public:
             epoll_event ev;
             ev.events = EPOLLIN | EPOLLONESHOT | EPOLLHUP | EPOLLERR | EPOLLRDHUP | EPOLLET;
             while ((cfd = accept(fd, (sockaddr *) &clientaddr, &len)) > 0) {
+                if(!becomeNonBlock(cfd)){
+                    close(cfd);
+                    continue;
+                }
                 ev.data.fd = cfd;
                 if (epoll_ctl(efd, EPOLL_CTL_ADD, cfd, &ev) == -1)
                     perror("thread add connect fd to epoll failed");
