@@ -80,7 +80,7 @@ int inetListen(const char *service, int backlog, socklen_t *addrlen) {
         if (bind(fd, addr->ai_addr, addr->ai_addrlen) == 0 && listen(fd, backlog) == 0) {
             if (addrlen != nullptr)
                 *addrlen = addr->ai_addrlen;
-            std::cout << "listening" << std::endl;
+            log::getInstance()->file<< "listening" << std::endl;
             break;
         }
         addr = addr->ai_next;

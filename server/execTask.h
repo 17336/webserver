@@ -14,7 +14,7 @@
 
 #define dataMaxSize 65536
 
-bool becomeNonBlock(int fd){
+bool becomeNonBlock(int fd) {
     //将lfd设为非阻塞模式
     int temp = fcntl(fd, F_GETFD);
     if (temp == -1) return false;
@@ -33,8 +33,18 @@ class execTask {
     bool isListenFd;
     //时间堆
     timerHeap &t;
+    //分配一条连接
+//    mysqlConn *con = nullptr;
 public:
-    explicit execTask(int fd_, int efd_, bool isListenFd_, timerHeap &th) : fd(fd_), efd(efd_), isListenFd(isListenFd_),
+//    explicit execTask(mysqlConn *mcon, int fd_, int efd_, bool isListenFd_, timerHeap &th) : con(mcon), fd(fd_),
+//                                                                                             efd(efd_),
+//                                                                                             isListenFd(isListenFd_),
+//                                                                                             t(th) {
+//    }
+
+    explicit execTask(int fd_, int efd_, bool isListenFd_, timerHeap &th) : fd(fd_),
+                                                                            efd(efd_),
+                                                                            isListenFd(isListenFd_),
                                                                             t(th) {
     }
 
@@ -49,7 +59,7 @@ public:
             epoll_event ev;
             ev.events = EPOLLIN | EPOLLONESHOT | EPOLLHUP | EPOLLERR | EPOLLRDHUP | EPOLLET;
             while ((cfd = accept(fd, (sockaddr *) &clientaddr, &len)) > 0) {
-                if(!becomeNonBlock(cfd)){
+                if (!becomeNonBlock(cfd)) {
                     close(cfd);
                     continue;
                 }

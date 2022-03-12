@@ -15,6 +15,7 @@
 #include "timer.h"
 #include <sys/resource.h>
 #include <unistd.h>
+#include "log.h"
 
 
 #pragma clang diagnostic push
@@ -26,6 +27,9 @@
 #define MAX_OPENS 100000
 
 int main(int argc, char **argv) {
+    log *l = log::getInstance();
+    l->init("log");
+
     //修改当前的最大打开文件数
     struct rlimit r;
     r.rlim_max = MAX_OPENS;
@@ -41,7 +45,8 @@ int main(int argc, char **argv) {
         errExit("inetListen");
     }
 
-    if(!becomeNonBlock(lfd)) errExit("no block");
+    //让监听套接字成为非阻塞模式
+    if (!becomeNonBlock(lfd)) errExit("no block");
 
     //创建epoll实例
     int efd;
@@ -76,6 +81,7 @@ int main(int argc, char **argv) {
                 if (timeout <= 0) timeout = tHeap.getLatestTime();
                 continue;
             }
+            l->push("epoll_wait失败");
             errExit("epoll_wait");
         }
         //epoll因为超时而返回
