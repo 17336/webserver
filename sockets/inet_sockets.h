@@ -13,7 +13,6 @@
 #include <iostream>
 #include <cstdio>
 #include <unistd.h>
-#include "log.h"
 
 int inetConnect(const char *host, const char *service, int type);
 int inetListen(const char *service, int backlog, socklen_t *addrlen);

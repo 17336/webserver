@@ -3,6 +3,7 @@
 //
 
 #include "inet_sockets.h"
+#include "../server/log.h"
 
 /**
  * 本函数用于客户端创建socket描述符并将其连接到某服务器上:
@@ -80,7 +81,7 @@ int inetListen(const char *service, int backlog, socklen_t *addrlen) {
         if (bind(fd, addr->ai_addr, addr->ai_addrlen) == 0 && listen(fd, backlog) == 0) {
             if (addrlen != nullptr)
                 *addrlen = addr->ai_addrlen;
-            log::getInstance()->file<< "listening" << std::endl;
+            log::getInstance()->push("listening");
             break;
         }
         addr = addr->ai_next;

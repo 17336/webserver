@@ -10,8 +10,10 @@
 #include <sys/time.h>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 
-std::string getCurDay() {
+
+inline std::string getCurDay() {
     time_t t = time(nullptr);
     tm *m= localtime(&t);
     return std::to_string(m->tm_year+1900)+ std::to_string(m->tm_mon+1)+ std::to_string(m->tm_mday);
@@ -66,8 +68,8 @@ public:
 
         file<<std::endl;
         //让线程执行log唯一实例的work函数
-        std::thread ted(&log::work, getInstance());
-
+        std::thread *ted=new std::thread(&log::work, getInstance());
+        tid=ted->get_id();
         return true;
     }
 
